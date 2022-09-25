@@ -52,7 +52,7 @@ runs:
         echo ::set-output name=status::$STATUS
 
     - name: Post status to Slack
-      uses: 8398a7/action-slack@v3.13.0
+      uses: 8398a7/action-slack@v3.14.0
       if: contains(inputs.allow-statuses, steps.workflow.outputs.status)
       env:
         SLACK_WEBHOOK_URL: ${{ inputs.slack-webhook-url }}
