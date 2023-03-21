@@ -58,7 +58,7 @@ runs:
         SLACK_WEBHOOK_URL: ${{ inputs.slack-webhook-url }}
       with:
         author_name: CI Results
-        fields: repo,commit,author,ref,workflow,message
+        fields: repo,commit,author,ref,workflow,workflowRun,message
         status: custom
         custom_payload: |
           {
@@ -72,8 +72,8 @@ runs:
                   short: true
                 },
                 {
-                  title: 'Commit',
-                  value: `${process.env.AS_COMMIT}`,
+                  title: 'Workflow run',
+                  value: `${process.env.AS_WORKFLOW_RUN}`,
                   short: true
                 },
                 {
