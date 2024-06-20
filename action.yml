@@ -1,86 +1,150 @@
-name: Notify us when a workflow failure happens
+name: Send a notification to Slack with the status of a workflow
 description: |
-  Push a whole workflow result to a Slack webhook.
+  Push the result of a workflow to a Slack channel.
 
   ```yaml
-  steps:
-    - name: Post status to Slack
-      uses: equisoft-actions/notify-workflow-status@v1
-      with:
-        needs: $ {{ toJSON(needs) }}
-        slack-webhook-url: "some url generated on slack"
+  jobs:
+    notify:
+      runs-on: ubuntu-latest
+      needs: [job-a, job-b]
+      steps:
+        - name: Post status to Slack
+          uses: equisoft-actions/notify-workflow-status@v2
+          with:
+            needs: $ {{ toJSON(needs) }}
+            slack-bot-token: $ {{ secrets.SLACK_BOT_TOKEN }}
+            channel: awt-ci-alerts
   ```
 
 inputs:
-  allow-statuses:
-    description: |
-      List of statuses for which notifications will be published.
-      Allowed values are success, cancelled and failure.
-      Defaults to only failure.
-    required: false
-    default: failure
   needs:
     description: |
-      The GitHub Actions `needs` context which should be passed in using toJSON():
-      `$ {{ toJSON(needs) }}`
+      The GitHub Actions `needs` context which should be passed in using toJSON(): `$ {{ toJSON(needs) }}`.
+      The notify jobs must depend on the jobs that you want to monitor.
     required: false
-  slack-webhook-url:
-    description: The Slack webhook that will receive our notifications.
+  downgrade-to-warning:
+    description: |
+      Comma-separated list of jobs that should be downgraded to a warning status instead of a failure.
+    required: false
+  notify-statuses:
+    description: |
+      Comma-separated list of statuses for which notifications will be published. Allowed values are cancelled, failure, success or warning.
+      Defaults to 'failure,warning'.
+    required: false
+    default: failure,warning
+  slack-bot-token:
+    description: The bot token used to authenticate with Slack.
     required: true
+  slack-channel:
+    description: |
+      The Slack channel where the notification will be sent.
+      Defaults to 'ops-ci'.
+    required: false
+    default: "ops-ci"
   workflow-status:
     description: |
-      The workflow status. Must be one of success, cancelled or failure.
+      The workflow status. Must be one of cancelled, failure, success or warning.
       If specified, it has precedence over `needs`.
     required: false
+
+outputs:
+  status:
+    description: The status of the workflow. Can be one of cancelled, failure, success or warning.
+    value: ${{ steps.workflow.outputs.status }}
 
 runs:
   using: composite
   steps:
     - name: Find workflow status
       id: workflow
-      shell: bash
+      uses: actions/github-script@v7
       run: |
-        STATUS=unknown
-        if ${{ toJSON(inputs.workflow-status == 'cancelled' || contains(fromJSON(inputs.needs).*.result, 'cancelled')) }}; then
-          STATUS=cancelled
-        elif ${{ toJSON(inputs.workflow-status == 'failure' || contains(fromJSON(inputs.needs).*.result, 'failure')) }}; then
-          STATUS=failure
-        elif ${{ toJSON(inputs.workflow-status == 'success' || contains(fromJSON(inputs.needs).*.result, 'success')) }}; then
-          STATUS=success
-        fi
+        const validStatuses = ['cancelled', 'failure', 'success', 'warning'];
+        const workflowStatus = core.getInput('workflow-status')?.toLowerCase();
+        let status;
 
-        echo "status=$STATUS" >> $GITHUB_OUTPUT
+        if (workflowStatus && validStatuses.includes(workflowStatus)) {
+          status = inputs['workflow-status']
+        } else {
+          let needs;
+          try {
+            const needsInput = core.getInput('needs');
+            const downgradedJobs = core.getInput('downgrade-to-warning')?.toLowerCase()?.split(',')?.map(job => job.trim()) || [];
+
+            needs = Object.entries(needsInput ? JSON.parse(needsInput) : {})
+              .map(([job, { result }]) => {
+                if (downgradedJobs.includes(job.toLowerCase()) && result === 'failure') {
+                  return { job, result: 'warning' };
+                }
+                return ({ job, result });
+              });
+          } catch (error) {
+            needs = [];
+            core.setFailed(`Invalid needs input: ${error.message}`);
+          }
+
+          if(needs.length === 0) {
+            status = 'success';
+            core.warning('Empty needs input provided. Assuming success.');
+          } else if (needs.some(n => n.result === 'cancelled')) {
+            status = 'cancelled'
+          } else if (needs.every(n => n.result === 'success' || n.result === 'skipped')) {
+            status = 'success'
+          } else if (needs.some(n => n.result === 'failure')) {
+            status = 'failure'
+          } else {
+            status = 'warning'
+          }
+        }
+
+        core.setOutput('status', status)
 
     - name: Post status to Slack
-      uses: 8398a7/action-slack@v3.16.2
-      if: contains(inputs.allow-statuses, steps.workflow.outputs.status)
+      uses: slackapi/slack-github-action@v1
+      if: contains(inputs.notify-statuses, steps.workflow.outputs.status)
       env:
-        SLACK_WEBHOOK_URL: ${{ inputs.slack-webhook-url }}
+        SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
       with:
-        author_name: CI Results
-        fields: repo,commit,author,ref,workflow,workflowRun,message
-        status: custom
-        custom_payload: |
+        channel-id: ${{ inputs.slack-channel }}
+        payload: |
           {
-            attachments: [{
-              color: '${{ steps.workflow.outputs.status }}' === 'success' ? 'good' : '${{ steps.workflow.outputs.status }}' === 'failure' ? 'danger' : '#999999',
-              text: `${process.env.AS_REPO}/${process.env.AS_WORKFLOW}: ${{ steps.workflow.outputs.status }}!`,
-              fields: [
-                {
-                  title: 'Ref',
-                  value: `${process.env.AS_REF}`,
-                  short: true
-                },
-                {
-                  title: 'Workflow run',
-                  value: `${process.env.AS_WORKFLOW_RUN}`,
-                  short: true
-                },
-                {
-                  title: 'Description',
-                  value: `${process.env.AS_MESSAGE}`,
-                  short: false
-                }
-              ]
-            }]
+            "attachments": [
+              {
+                "color": "#${{ steps.workflow.outputs.status == 'success' && '36a64f' || steps.workflow.outputs.status == 'failure' && 'ff0000' || '808080' }}",
+                "blocks": [
+                  {
+                    "type": "section",
+                    "text": {
+                      "type": "mrkdwn",
+                      "text": "<${{ github.event.repository.html_url }}|${{ github.repository }}>/<${{ github.event.repository.html_url }}/actions/runs/${{ github.run_id }}|${{ github.workflow }}>: Run ${{ steps.workflow.outputs.status }}!"
+                    },
+                    "fields": [
+                      {
+                        "type": "mrkdwn",
+                        "text": "*Ref*"
+                      },
+                      {
+                        "type": "mrkdwn",
+                        "text": "*Workflow*"
+                      },
+                      {
+                        "type": "mrkdwn",
+                        "text": "${{ github.ref_name }}"
+                      },
+                      {
+                        "type": "mrkdwn",
+                        "text": "<${{ github.event.repository.html_url }}/actions/runs/${{ github.run_id }}|${{ github.workflow }}>"
+                      }
+                    ]
+                  },
+                  {
+                    "type": "section",
+                    "text": {
+                      "type": "mrkdwn",
+                      "text": "*Last commit*\n<${{ github.event.head_commit.url }}|${{ github.event.head_commit.message }}>"
+                    }
+                  }
+                ]
+              }
+            ]
           }
