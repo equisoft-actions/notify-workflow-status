@@ -13,7 +13,7 @@ description: |
           with:
             needs: $ {{ toJSON(needs) }}
             slack-bot-token: $ {{ secrets.SLACK_BOT_TOKEN }}
-            channel: awt-ci-alerts
+            slack-channel: awt-ci-alerts
   ```
 
 inputs:
