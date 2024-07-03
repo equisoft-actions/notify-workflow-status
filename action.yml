@@ -65,7 +65,7 @@ runs:
           let status;
   
           if (workflowStatus && validStatuses.includes(workflowStatus)) {
-            status = inputs['workflow-status']
+            status = workflowStatus;
           } else {
             let needs;
             try {
