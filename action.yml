@@ -58,46 +58,47 @@ runs:
     - name: Find workflow status
       id: workflow
       uses: actions/github-script@v7
-      run: |
-        const validStatuses = ['cancelled', 'failure', 'success', 'warning'];
-        const workflowStatus = core.getInput('workflow-status')?.toLowerCase();
-        let status;
-
-        if (workflowStatus && validStatuses.includes(workflowStatus)) {
-          status = inputs['workflow-status']
-        } else {
-          let needs;
-          try {
-            const needsInput = core.getInput('needs');
-            const downgradedJobs = core.getInput('downgrade-to-warning')?.toLowerCase()?.split(',')?.map(job => job.trim()) || [];
-
-            needs = Object.entries(needsInput ? JSON.parse(needsInput) : {})
-              .map(([job, { result }]) => {
-                if (downgradedJobs.includes(job.toLowerCase()) && result === 'failure') {
-                  return { job, result: 'warning' };
-                }
-                return ({ job, result });
-              });
-          } catch (error) {
-            needs = [];
-            core.setFailed(`Invalid needs input: ${error.message}`);
-          }
-
-          if(needs.length === 0) {
-            status = 'success';
-            core.warning('Empty needs input provided. Assuming success.');
-          } else if (needs.some(n => n.result === 'cancelled')) {
-            status = 'cancelled'
-          } else if (needs.every(n => n.result === 'success' || n.result === 'skipped')) {
-            status = 'success'
-          } else if (needs.some(n => n.result === 'failure')) {
-            status = 'failure'
+      with:
+        script: |
+          const validStatuses = ['cancelled', 'failure', 'success', 'warning'];
+          const workflowStatus = core.getInput('workflow-status')?.toLowerCase();
+          let status;
+  
+          if (workflowStatus && validStatuses.includes(workflowStatus)) {
+            status = inputs['workflow-status']
           } else {
-            status = 'warning'
+            let needs;
+            try {
+              const needsInput = core.getInput('needs');
+              const downgradedJobs = core.getInput('downgrade-to-warning')?.toLowerCase()?.split(',')?.map(job => job.trim()) || [];
+  
+              needs = Object.entries(needsInput ? JSON.parse(needsInput) : {})
+                .map(([job, { result }]) => {
+                  if (downgradedJobs.includes(job.toLowerCase()) && result === 'failure') {
+                    return { job, result: 'warning' };
+                  }
+                  return ({ job, result });
+                });
+            } catch (error) {
+              needs = [];
+              core.setFailed(`Invalid needs input: ${error.message}`);
+            }
+  
+            if(needs.length === 0) {
+              status = 'success';
+              core.warning('Empty needs input provided. Assuming success.');
+            } else if (needs.some(n => n.result === 'cancelled')) {
+              status = 'cancelled'
+            } else if (needs.every(n => n.result === 'success' || n.result === 'skipped')) {
+              status = 'success'
+            } else if (needs.some(n => n.result === 'failure')) {
+              status = 'failure'
+            } else {
+              status = 'warning'
+            }
           }
-        }
-
-        core.setOutput('status', status)
+  
+          core.setOutput('status', status)
 
     - name: Post status to Slack
       uses: slackapi/slack-github-action@v1
