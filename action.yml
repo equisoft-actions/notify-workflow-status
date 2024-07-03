@@ -103,7 +103,7 @@ runs:
       uses: slackapi/slack-github-action@v1
       if: contains(inputs.notify-statuses, steps.workflow.outputs.status)
       env:
-        SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+        SLACK_BOT_TOKEN: ${{ inputs.slack-bot-token }}
       with:
         channel-id: ${{ inputs.slack-channel }}
         payload: |
