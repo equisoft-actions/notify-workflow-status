@@ -1,0 +1,20 @@
+name: Test
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Setup asdf-vm
+        uses: equisoft-actions/with-asdf-vm@v1
+      - name: Install NPM dependencies
+        uses: equisoft-actions/yarn-install@v1
+      - name: Run tests
+        run: yarn test:ci
