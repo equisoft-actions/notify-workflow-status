@@ -60,7 +60,7 @@ runs:
       uses: actions/github-script@v7
       with:
         script: |
-          const main = require(`${process.env.GITHUB_ACTION_PATH}/src/main.js'`);
+          const main = require(`${process.env.GITHUB_ACTION_PATH}/src/main.js`);
           // Workaround for https://github.com/actions/toolkit/issues/1124
           const inputs = ${{ toJson(inputs) }};
           main({ core, inputs });
