@@ -107,7 +107,7 @@ runs:
                     "type": "section",
                     "text": {
                       "type": "mrkdwn",
-                      "text": "*Last commit*\n<${{ github.event.head_commit.url }}|${{ github.event.head_commit.message }}>"
+                      "text": "*Last commit*\n<${{ github.event.head_commit.url }}|${{ github.event.head_commit.id }}>"
                     }
                   }
                 ]
