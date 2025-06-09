@@ -3,7 +3,7 @@
     "test": "jest",
     "test:ci": "jest"
   },
-  "packageManager": "yarn@4.9.1",
+  "packageManager": "yarn@4.9.2",
   "devDependencies": {
     "jest": "29.7.0",
     "jest-when": "3.7.0"
