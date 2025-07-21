@@ -66,7 +66,7 @@ runs:
           main({ core, inputs });
 
     - name: Post status to Slack
-      uses: slackapi/slack-github-action@v1
+      uses: slackapi/slack-github-action@v2
       if: contains(inputs.notify-statuses, steps.workflow.outputs.status)
       env:
         SLACK_BOT_TOKEN: ${{ inputs.slack-bot-token }}
