@@ -32,9 +32,15 @@ inputs:
       Defaults to 'failure,warning'.
     required: false
     default: failure,warning
+  slack-enabled:
+    description: |
+      If set to `true`, the status of the workflow will be posted to Slack.
+      Defaults to `true`.
+    required: false
+    default: "true"
   slack-bot-token:
     description: The bot token used to authenticate with Slack.
-    required: true
+    required: false
   slack-channel:
     description: |
       The Slack channel where the notification will be sent.
@@ -55,19 +61,19 @@ outputs:
 runs:
   using: composite
   steps:
-    - name: Find workflow status
+    - name: Workflow status
       id: workflow
       uses: actions/github-script@v7
       with:
         script: |
-          const main = require(`${process.env.GITHUB_ACTION_PATH}/src/main.js`);
           // Workaround for https://github.com/actions/toolkit/issues/1124
           const inputs = ${{ toJson(inputs) }};
+          const main = require(`${process.env.GITHUB_ACTION_PATH}/src/main.js`);
           main({ core, inputs });
 
-    - name: Post status to Slack
+    - name: Post to Slack
       uses: slackapi/slack-github-action@v2
-      if: contains(inputs.notify-statuses, steps.workflow.outputs.status)
+      if: always() && inputs.slack-enabled == 'true' && contains(inputs.notify-statuses, steps.workflow.outputs.status)
       env:
         SLACK_BOT_TOKEN: ${{ inputs.slack-bot-token }}
       with:
