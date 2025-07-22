@@ -6,39 +6,48 @@ function main({ core, inputs }) {
     if (workflowStatus && validStatuses.includes(workflowStatus)) {
         status = workflowStatus;
     } else {
-        let needs;
         try {
-            const needsInput = inputs['needs'];
-            const downgradedJobs = inputs['downgrade-to-warning']?.toLowerCase()?.split(',')
-                ?.map(job => job.trim()) || [];
-
-            needs = Object.entries(needsInput ? JSON.parse(needsInput) : {})
-                .map(([job, { result }]) => {
-                    if (result === 'failure' && downgradedJobs.includes(job.toLowerCase())) {
-                        return { job, result: 'warning' };
-                    }
-                    return { job, result };
-                });
+            status = computeStatusFromNeeds(core, inputs);
         } catch (error) {
-            needs = [];
-            core.setFailed(`Invalid needs input: ${error.message}`);
-        }
-
-        if (needs.length === 0) {
-            status = 'success';
-            core.warning('Empty needs input provided. Assuming success.');
-        } else if (needs.some(({ result }) => result === 'cancelled')) {
-            status = 'cancelled';
-        } else if (needs.every(({ result }) => result === 'success' || result === 'skipped')) {
-            status = 'success';
-        } else if (needs.some(({ result }) => result === 'failure')) {
             status = 'failure';
-        } else {
-            status = 'warning';
+            core.error(`Invalid needs input: ${error.message}`);
         }
     }
 
+    if (status === 'failure') {
+        core.setFailed();
+    }
     core.setOutput('status', status);
+}
+
+function computeStatusFromNeeds(core, inputs) {
+    let status;
+    const needsInput = inputs['needs'];
+    const downgradedJobs = inputs['downgrade-to-warning']?.toLowerCase()?.split(',')
+        ?.map(job => job.trim()) || [];
+
+    const needs = Object.entries(needsInput ? JSON.parse(needsInput) : {})
+        .map(([job, { result }]) => {
+            if (result === 'failure' && downgradedJobs.includes(job.toLowerCase())) {
+                return { job, result: 'warning' };
+            }
+            return { job, result };
+        });
+
+    if (needs.length === 0) {
+        status = 'success';
+        core.warning('Empty needs input provided. Assuming success.');
+    } else if (needs.some(({ result }) => result === 'cancelled')) {
+        status = 'cancelled';
+    } else if (needs.every(({ result }) => result === 'success' || result === 'skipped')) {
+        status = 'success';
+    } else if (needs.some(({ result }) => result === 'failure')) {
+        status = 'failure';
+    } else {
+        status = 'warning';
+    }
+
+    return status;
 }
 
 module.exports = main;
