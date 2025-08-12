@@ -74,12 +74,12 @@ runs:
     - name: Post to Slack
       uses: slackapi/slack-github-action@v2
       if: always() && inputs.slack-enabled == 'true' && contains(inputs.notify-statuses, steps.workflow.outputs.status)
-      env:
-        SLACK_BOT_TOKEN: ${{ inputs.slack-bot-token }}
       with:
-        channel-id: ${{ inputs.slack-channel }}
+        method: chat.postMessage
+        token: ${{ inputs.slack-bot-token }}
         payload: |
           {
+            "channel": "${{ inputs.slack-channel }}",
             "attachments": [
               {
                 "color": "#${{ steps.workflow.outputs.status == 'success' && '36a64f' || steps.workflow.outputs.status == 'failure' && 'ff0000' || '808080' }}",
