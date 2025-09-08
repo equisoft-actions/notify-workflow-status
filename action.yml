@@ -63,7 +63,7 @@ runs:
   steps:
     - name: Workflow status
       id: workflow
-      uses: actions/github-script@v7
+      uses: actions/github-script@v8
       with:
         script: |
           // Workaround for https://github.com/actions/toolkit/issues/1124
