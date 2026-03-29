@@ -2411,12 +2411,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"jest-when@npm:3.7.0":
-  version: 3.7.0
-  resolution: "jest-when@npm:3.7.0"
+"jest-when@npm:4.0.1":
+  version: 4.0.1
+  resolution: "jest-when@npm:4.0.1"
   peerDependencies:
-    jest: ">= 25"
-  checksum: 10c0/0e5cf14a4bfe4aacdf3c748c5b28ea5b04c51072e2ba3d47832586f756cbb849b33c36fffe89bb0741fb836a69bdc1d30072b641dd275b8a27376376c175937e
+    jest: ">= 27"
+  checksum: 10c0/4354dcb44141ed5d761840ef1c40fada26d41f12a580a35e8523f475fba0dfaaadaf6996693da4bd398e1e2bcbd9e60b6e8d2f99ddf72455d5e594cb9e8e52d3
   languageName: node
   linkType: hard
 
@@ -3004,7 +3004,7 @@ __metadata:
   resolution: "root-workspace-0b6124@workspace:."
   dependencies:
     jest: "npm:30.3.0"
-    jest-when: "npm:3.7.0"
+    jest-when: "npm:4.0.1"
   languageName: unknown
   linkType: soft
 
