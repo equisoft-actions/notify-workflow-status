@@ -63,7 +63,7 @@ runs:
   steps:
     - name: Workflow status
       id: workflow
-      uses: actions/github-script@v9
+      uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9
       with:
         script: |
           // Workaround for https://github.com/actions/toolkit/issues/1124
@@ -72,7 +72,7 @@ runs:
           main({ core, inputs });
 
     - name: Post to Slack
-      uses: slackapi/slack-github-action@v3
+      uses: slackapi/slack-github-action@03ea5433c137af7c0495bc0cad1af10403fc800c # v3
       if: always() && inputs.slack-enabled == 'true' && contains(inputs.notify-statuses, steps.workflow.outputs.status)
       with:
         method: chat.postMessage
