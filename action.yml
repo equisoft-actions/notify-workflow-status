@@ -72,7 +72,7 @@ runs:
           main({ core, inputs });
 
     - name: Post to Slack
-      uses: slackapi/slack-github-action@0d95c9a7becc1e6e297d76df9bc735c44f4cbcbc # v3
+      uses: slackapi/slack-github-action@dcb1066f776dd043e64d0e8ba94ca15cc7e1875d # v4
       if: always() && inputs.slack-enabled == 'true' && contains(inputs.notify-statuses, steps.workflow.outputs.status)
       with:
         method: chat.postMessage
